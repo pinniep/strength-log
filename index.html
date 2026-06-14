@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Strength Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#33506b;--ink-soft:#5f7589;--paper:#f4ede6;--card:#fdfaf6;--line:#e4d9cd;
+    --blue:#6b8cae;--blue-deep:#4a6b8a;--blue-soft:#dde7f0;
+    --peach:#cf6f43;--peach-soft:#f7dcc9;--stone:#94897f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--paper);line-height:1.45;}
+  .app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+  header{padding:16px 16px 8px;border-bottom:2px solid var(--blue-deep);}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.45rem;letter-spacing:-.02em;}
+  .tabs{display:flex;gap:6px;padding:11px 14px;position:sticky;top:0;background:var(--paper);z-index:5;border-bottom:1px solid var(--line);}
+  .tab{flex:1;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:600;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink-soft);cursor:pointer;}
+  .tab.on{background:var(--blue-deep);color:#fff;border-color:var(--blue-deep);}
+  main{padding:14px 14px 40px;flex:1;}
+  .panel{display:none;}.panel.on{display:block;}
+  label{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--stone);font-family:'IBM Plex Mono',monospace;display:block;margin-bottom:4px;}
+  select,input{width:100%;font-family:'Inter',sans-serif;font-size:.98rem;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);}
+  input[type=date]{font-family:'IBM Plex Mono',monospace;}
+  .daytog{display:flex;gap:8px;margin:11px 0;}
+  .daytog button{flex:1;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.88rem;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink-soft);cursor:pointer;}
+  .daytog button.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .checkin{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:14px;}
+  .checkin h3{font-family:'Space Grotesk',sans-serif;font-size:.92rem;font-weight:600;margin-bottom:9px;}
+  .ci-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .ci-grid select{padding:9px 7px;font-size:.86rem;}
+  .cyc{margin-top:9px;font-size:.82rem;font-family:'IBM Plex Mono',monospace;color:var(--blue-deep);background:var(--blue-soft);border-radius:8px;padding:7px 10px;}
+  .xc{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:11px;padding:12px 13px;margin-bottom:10px;}
+  .xc.flagged{border-left-style:dashed;border-left-color:var(--peach);}
+  .xc-h{display:flex;gap:10px;align-items:flex-start;}
+  .xc-fig{flex:none;width:54px;}
+  .xc-mid{flex:1;min-width:0;}
+  .xc-n{font-weight:600;font-size:1rem;display:flex;align-items:center;flex-wrap:wrap;}
+  .xc-m{font-size:.75rem;color:var(--stone);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+  .xc-ref{font-family:'IBM Plex Mono',monospace;font-size:.72rem;text-align:right;line-height:1.55;white-space:nowrap;color:var(--ink-soft);}
+  .pop{color:var(--peach);font-weight:600;}
+  .flagb{font-family:'IBM Plex Mono',monospace;font-size:.56rem;background:var(--peach-soft);color:var(--peach);padding:2px 6px;border-radius:4px;margin-left:7px;text-transform:uppercase;letter-spacing:.05em;}
+  .xc-last{font-size:.8rem;color:var(--ink-soft);margin:9px 0 6px;font-family:'IBM Plex Mono',monospace;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+  .tgt{color:var(--blue-deep);}
+  .setrow{display:grid;grid-template-columns:30px 1fr 1fr 26px;gap:7px;align-items:center;margin-bottom:6px;}
+  .setrow .sn{font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--stone);text-align:center;}
+  .setrow input{padding:8px 7px;font-family:'IBM Plex Mono',monospace;font-size:.92rem;}
+  .rmx{background:none;border:none;color:var(--stone);font-size:1.1rem;cursor:pointer;padding:0;}
+  .addset{background:none;border:1px dashed var(--line);color:var(--ink-soft);font-size:.8rem;padding:7px;border-radius:8px;width:100%;cursor:pointer;margin-top:2px;}
+  .nextrow{display:flex;align-items:center;gap:8px;margin-top:9px;}
+  .nextrow label{margin:0;color:var(--blue-deep);white-space:nowrap;}
+  .nextrow input{flex:1;padding:8px;font-family:'IBM Plex Mono',monospace;}
+  .btn{width:100%;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1rem;padding:13px;border-radius:10px;border:none;background:var(--blue-deep);color:#fff;cursor:pointer;margin-top:6px;}
+  .btn:active{transform:scale(.99);}
+  .stats{display:flex;gap:10px;margin-bottom:10px;}
+  .stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px;text-align:center;}
+  .stat .v{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:1.3rem;}
+  .stat .k{font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;color:var(--stone);margin-top:2px;}
+  .legend{font-size:.76rem;color:var(--stone);margin-bottom:14px;line-height:1.5;}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .pcard .top{display:flex;justify-content:space-between;align-items:baseline;}
+  .pcard .nm{font-weight:600;font-size:.96rem;}
+  .pcard .now{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.95rem;color:var(--blue-deep);}
+  .pcard .delta{font-family:'IBM Plex Mono',monospace;font-size:.74rem;margin-top:2px;}
+  .up{color:var(--blue-deep);}.flat{color:var(--stone);}
+  .empty{color:var(--stone);font-size:.9rem;text-align:center;padding:24px 10px;border:1px dashed var(--line);border-radius:10px;}
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px;}
+  .mb{font-size:.84rem;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer;text-align:left;}
+  .mb.on{background:var(--blue-soft);border-color:var(--blue);font-weight:600;}
+  .mdl{font-size:.7rem;color:var(--stone);font-family:'IBM Plex Mono',monospace;margin:13px 0 6px;}
+  .muscle{fill:#fff;stroke:var(--line);stroke-width:1.2;transition:fill .15s;}
+  .struct{fill:#fff;stroke:var(--line);stroke-width:1.2;}
+  .muscle.sec{fill:var(--peach-soft);stroke:var(--peach);}
+  .muscle.pri{fill:var(--blue);stroke:var(--blue-deep);}
+  .cap{fill:var(--stone);font-size:12px;font-family:'Inter',sans-serif;}
+  .read{margin-top:8px;font-size:.94rem;min-height:42px;}.read .t{font-weight:600;}
+  .leg{display:flex;gap:16px;margin-top:6px;font-size:.76rem;color:var(--ink-soft);}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+  .hint{font-size:.78rem;color:var(--stone);margin-top:14px;line-height:1.55;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header><h1>Strength Log</h1></header>
+  <div class="tabs">
+    <button class="tab on" data-t="log">Today</button>
+    <button class="tab" data-t="prog">Progress</button>
+    <button class="tab" data-t="mus">Muscles</button>
+    <button class="tab" data-t="data">Data</button>
+  </div>
+  <main>
+    <section class="panel on" id="p-log">
+      <label>Session date</label><input id="dt" type="date">
+      <div class="daytog"><button id="d1" class="on">Day 1 · Upper</button><button id="d2">Day 2 · Lower + arms</button></div>
+      <div class="checkin">
+        <h3>How are you today?</h3>
+        <div class="ci-grid">
+          <div><label>Feeling</label><select id="ci-feel"></select></div>
+          <div><label>Energy</label><select id="ci-en"></select></div>
+          <div><label>Bleeding?</label><select id="ci-bl"></select></div>
+        </div>
+        <div class="cyc" id="cyc"></div>
+      </div>
+      <div id="cards"></div>
+      <button class="btn" id="save">Save session</button>
+      <p class="hint">Log every set — including a lighter warm-up or a drop on your last set. The app tracks your best working set automatically. Bleeding days drive the cycle estimate; perimenopausal cycles vary, so the phase is a rough guide.</p>
+    </section>
+
+    <section class="panel" id="p-prog">
+      <div class="stats">
+        <div class="stat"><div class="v" id="s-sess">0</div><div class="k">sets logged</div></div>
+        <div class="stat"><div class="v" id="s-ex">0</div><div class="k">lifts tracked</div></div>
+        <div class="stat"><div class="v" id="s-days">0</div><div class="k">days logged</div></div>
+      </div>
+      <p class="legend">Trend line = <b>estimated strength</b> (weight and reps combined). Higher means stronger, so adding reps shows progress even before you add weight.</p>
+      <div id="prog"></div>
+    </section>
+
+    <section class="panel" id="p-mus">
+      <div class="mdl">Day 1 — upper body</div><div class="mgrid" id="mg1"></div>
+      <div class="mdl">Day 2 — lower body + shoulders/arms</div><div class="mgrid" id="mg2"></div>
+      <div id="bigfig" style="margin-top:12px"></div>
+      <div class="leg"><span><span class="sw" style="background:var(--blue)"></span>Main focus</span><span><span class="sw" style="background:var(--peach-soft);border:1px solid var(--peach)"></span>Supporting</span></div>
+      <div class="read" id="read"></div>
+    </section>
+
+    <section class="panel" id="p-data">
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:600;margin-bottom:6px;">Backup &amp; sync</h3>
+      <p class="hint" style="margin-top:0">Your log is saved in this device's browser. To move it to another phone or computer — or to hand it to Claude for a review — tap below to copy your data, then paste it into the import box on the other device (or into a chat with Claude).</p>
+      <button class="btn" onclick="exportData()" id="exp">Copy my data</button>
+      <textarea id="expbox" readonly placeholder="Your data will appear here to copy" style="display:none;width:100%;min-height:90px;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:.74rem;border:1px solid var(--line);border-radius:9px;padding:10px;background:var(--card);color:var(--ink);"></textarea>
+      <div style="margin-top:20px;">
+        <label>Paste data to import</label>
+        <textarea id="impbox" placeholder="Paste exported data here" style="width:100%;min-height:90px;font-family:'IBM Plex Mono',monospace;font-size:.74rem;border:1px solid var(--line);border-radius:9px;padding:10px;background:var(--card);color:var(--ink);"></textarea>
+        <button class="btn" onclick="importData()" style="background:var(--blue);margin-top:8px;">Load data</button>
+        <div id="impmsg" class="hint"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const PROGRAM=[
+ {k:'incline',n:'Incline press',day:1,mus:'chest · front delts',sets:'1 w/u + 4×6–8',rest:'90–120s'},
+ {k:'pulldown',n:'Lat pulldown',day:1,mus:'lats',sets:'1 w/u + 4×6–8',rest:'90–120s'},
+ {k:'flatpress',n:'Flat press',day:1,mus:'chest',sets:'3×10–12',rest:'60–90s'},
+ {k:'row',n:'Cable row',day:1,mus:'lats · upper back',sets:'3×10–12',rest:'60–90s'},
+ {k:'birddog',n:'Bird dog',day:1,mus:'core · lower back',sets:'2×10 · 5s',rest:'30s'},
+ {k:'goblet',n:'Goblet squat',day:2,mus:'quads · glutes',sets:'3–4×8–10',rest:'90s'},
+ {k:'rdl',n:'Romanian deadlift',day:2,mus:'hamstrings · glutes',sets:'3×8–10',rest:'90s',flag:'July'},
+ {k:'legext',n:'Leg extension',day:2,mus:'quads',sets:'3×10–12',rest:'60s'},
+ {k:'legcurl',n:'Leg curl',day:2,mus:'hamstrings',sets:'3×10–12',rest:'60s'},
+ {k:'shoulder',n:'Shoulder press',day:2,mus:'front delts',sets:'3–4×8–10',rest:'90s'},
+ {k:'revfly',n:'Reverse fly',day:2,mus:'rear delts',sets:'3×12',rest:'45s'},
+ {k:'pushdown',n:'Triceps pushdown',day:2,mus:'triceps',sets:'4×10–12',rest:'45–60s'},
+ {k:'hammer',n:'Hammer curl',day:2,mus:'biceps',sets:'4×10–12',rest:'45–60s'}
+];
+const NAME=Object.fromEntries(PROGRAM.map(e=>[e.k,e.n]));
+const MMAP={incline:{p:['chest','delts'],s:['triceps']},pulldown:{p:['lats'],s:['biceps','upperback']},flatpress:{p:['chest'],s:['delts','triceps']},row:{p:['lats','upperback'],s:['biceps','reardelts']},birddog:{p:['core','lowerback'],s:['glutes']},goblet:{p:['quads','glutes'],s:['core']},rdl:{p:['hamstrings','glutes'],s:['lowerback','core']},legext:{p:['quads'],s:[]},legcurl:{p:['hamstrings'],s:[]},shoulder:{p:['delts'],s:['triceps','chest']},revfly:{p:['reardelts'],s:['upperback']},pushdown:{p:['triceps'],s:[]},hammer:{p:['biceps'],s:['forearms']}};
+const LBL={chest:'chest',delts:'front shoulders',biceps:'biceps',forearms:'forearms',core:'core',quads:'quads',upperback:'upper back',reardelts:'rear shoulders',lats:'lats',triceps:'triceps',lowerback:'lower back',glutes:'glutes',hamstrings:'hamstrings'};
+const FEEL=['—','Rough','OK','Good','Strong'],EN=['—','Low','Medium','High'],BL=['—','Bleeding','No'];
+
+const STRUCT=[['circle',{cx:100,cy:50,r:14}],['rect',{x:93,y:62,width:14,height:9,rx:3}],['circle',{cx:58,cy:176,r:6}],['circle',{cx:142,cy:176,r:6}],['rect',{x:80,y:182,width:40,height:22,rx:6}],['rect',{x:82,y:288,width:14,height:58,rx:6}],['rect',{x:104,y:288,width:14,height:58,rx:6}],['circle',{cx:280,cy:50,r:14}],['rect',{x:273,y:62,width:14,height:9,rx:3}],['circle',{cx:238,cy:176,r:6}],['circle',{cx:322,cy:176,r:6}],['ellipse',{cx:240,cy:152,rx:7,ry:19}],['ellipse',{cx:320,cy:152,rx:7,ry:19}],['rect',{x:262,y:290,width:14,height:56,rx:6}],['rect',{x:284,y:290,width:14,height:56,rx:6}]];
+const MUS={delts:[['ellipse',{cx:74,cy:84,rx:12,ry:11}],['ellipse',{cx:126,cy:84,rx:12,ry:11}]],biceps:[['ellipse',{cx:64,cy:112,rx:8,ry:20}],['ellipse',{cx:136,cy:112,rx:8,ry:20}]],forearms:[['ellipse',{cx:60,cy:152,rx:7,ry:19}],['ellipse',{cx:140,cy:152,rx:7,ry:19}]],chest:[['rect',{x:80,y:80,width:19,height:34,rx:6}],['rect',{x:101,y:80,width:19,height:34,rx:6}]],core:[['rect',{x:83,y:116,width:34,height:66,rx:8}]],quads:[['ellipse',{cx:89,cy:246,rx:13,ry:40}],['ellipse',{cx:111,cy:246,rx:13,ry:40}]],upperback:[['rect',{x:261,y:78,width:38,height:30,rx:7}]],reardelts:[['ellipse',{cx:254,cy:84,rx:12,ry:11}],['ellipse',{cx:306,cy:84,rx:12,ry:11}]],triceps:[['ellipse',{cx:244,cy:114,rx:8,ry:20}],['ellipse',{cx:316,cy:114,rx:8,ry:20}]],lats:[['ellipse',{cx:265,cy:130,rx:10,ry:26}],['ellipse',{cx:295,cy:130,rx:10,ry:26}]],lowerback:[['rect',{x:268,y:152,width:24,height:30,rx:6}]],glutes:[['ellipse',{cx:270,cy:200,rx:13,ry:15}],['ellipse',{cx:290,cy:200,rx:13,ry:15}]],hamstrings:[['ellipse',{cx:269,cy:250,rx:13,ry:38}],['ellipse',{cx:291,cy:250,rx:13,ry:38}]]};
+function at(a){return Object.keys(a).map(k=>k+'="'+a[k]+'"').join(' ');}
+function figure(opts){
+ opts=opts||{};var fm=opts.fill||{};
+ var s='<svg width="'+(opts.w||'100%')+'" viewBox="0 0 380 384" role="img" aria-hidden="'+(opts.labels?'false':'true')+'"'+(opts.style?' style="'+opts.style+'"':'')+'>';
+ STRUCT.forEach(function(sh){s+= opts.interactive? '<'+sh[0]+' class="struct" '+at(sh[1])+'/>' : '<'+sh[0]+' '+at(sh[1])+' fill="#fff" stroke="#e1d5c9" stroke-width="1.4"/>';});
+ Object.keys(MUS).forEach(function(id){
+   MUS[id].forEach(function(sh){
+     if(opts.interactive){s+='<'+sh[0]+' class="muscle k-'+id+'" '+at(sh[1])+'/>';}
+     else{var r=fm[id];var f=r==='pri'?'#6b8cae':r==='sec'?'#f7dcc9':'#fff';var st=r==='pri'?'#4a6b8a':r==='sec'?'#cf6f43':'#e1d5c9';s+='<'+sh[0]+' '+at(sh[1])+' fill="'+f+'" stroke="'+st+'" stroke-width="1.4"/>';}
+   });
+ });
+ if(opts.labels){s+='<text class="cap" x="100" y="370" text-anchor="middle">Front</text><text class="cap" x="280" y="370" text-anchor="middle">Back</text>';}
+ return s+'</svg>';
+}
+function fillFor(k){var m=MMAP[k],o={};m.s.forEach(function(x){o[x]='sec';});m.p.forEach(function(x){o[x]='pri';});return o;}
+
+const K_E='sl:entries',K_C='sl:checkins',K_T='sl:targets';
+let entries=[],checkins={},targets={},curDay=1,draft={},draftT={};
+function getJSON(k,fb){try{var r=localStorage.getItem(k);return r?JSON.parse(r):fb;}catch(e){return fb;}}
+function setJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function fmtDate(s){return new Date(s+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'});}
+function dayMinus(s,n){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
+function diffDays(a,b){return Math.round((new Date(a+'T00:00:00')-new Date(b+'T00:00:00'))/86400000);}
+function e1rm(w,r){return w*(1+r/30);}
+function topSet(en){if(!en||!en.sets)return null;var best=null,bv=-1;en.sets.forEach(function(s){if(s.wt!=null&&s.rp!=null){var v=e1rm(s.wt,s.rp);if(v>bv){bv=v;best={wt:s.wt,rp:s.rp,e:v};}}});if(best)return best;en.sets.forEach(function(s){if(s.wt!=null&&(best===null||s.wt>best.wt))best={wt:s.wt,rp:s.rp,e:null};});return best;}
+function lastFor(ex,exclDt){var a=entries.filter(function(e){return e.ex===ex&&e.dt!==exclDt;}).sort(function(x,y){return x.dt<y.dt?1:x.dt>y.dt?-1:y.id-x.id;});return a[0]||null;}
+
+function computeCycle(date){
+ var bleeds=Object.keys(checkins).filter(function(d){return checkins[d]&&checkins[d].bleed==='Bleeding';});
+ if(!bleeds.length)return null;
+ var set={};bleeds.forEach(function(d){set[d]=1;});
+ var starts=bleeds.filter(function(d){return !set[dayMinus(d,1)];}).sort();
+ var st=null;starts.forEach(function(s){if(s<=date)st=s;});
+ if(!st)return null;
+ var day=diffDays(date,st)+1;
+ var bToday=checkins[date]&&checkins[date].bleed==='Bleeding';
+ var ph=bToday?'menstrual (bleeding)':day<=5?'menstrual':day<=13?'follicular':day<=16?'ovulation (est.)':'luteal';
+ return {day:day,phase:ph};
+}
+
+const dt=document.getElementById('dt');dt.value=todayISO();
+function fillSel(el,arr,v){el.innerHTML=arr.map(function(o){return '<option'+(o===v?' selected':'')+'>'+o+'</option>';}).join('');}
+fillSel(document.getElementById('ci-feel'),FEEL);fillSel(document.getElementById('ci-en'),EN);fillSel(document.getElementById('ci-bl'),BL);
+document.getElementById('d1').onclick=function(){curDay=1;this.classList.add('on');document.getElementById('d2').classList.remove('on');initDraft();renderCards();};
+document.getElementById('d2').onclick=function(){curDay=2;this.classList.add('on');document.getElementById('d1').classList.remove('on');initDraft();renderCards();};
+dt.onchange=function(){initDraft();renderCheckin();renderCards();};
+document.getElementById('ci-bl').onchange=function(){var d=dt.value;checkins[d]=checkins[d]||{};checkins[d].bleed=this.value==='—'?'':this.value;renderCyc();};
+
+function initDraft(){
+ var d=dt.value;draft={};draftT={};
+ PROGRAM.filter(function(e){return e.day===curDay;}).forEach(function(e){
+   var today=entries.find(function(x){return x.dt===d&&x.ex===e.k;});
+   var last=lastFor(e.k,d);
+   var base;
+   if(today&&today.sets&&today.sets.length)base=today.sets.map(function(s){return {wt:s.wt==null?'':String(s.wt),rp:s.rp==null?'':String(s.rp)};});
+   else if(last&&last.sets&&last.sets.length)base=last.sets.map(function(s){return {wt:s.wt==null?'':String(s.wt),rp:s.rp==null?'':String(s.rp)};});
+   else base=[{wt:'',rp:''},{wt:'',rp:''},{wt:'',rp:''}];
+   draft[e.k]=base;
+   draftT[e.k]=targets[e.k]!=null?String(targets[e.k]):'';
+ });
+}
+function upd(k,i,f,v){draft[k][i][f]=v;}
+function updT(k,v){draftT[k]=v;}
+function addSet(k){draft[k].push({wt:'',rp:''});renderCards();}
+function rmSet(k,i){draft[k].splice(i,1);if(!draft[k].length)draft[k].push({wt:'',rp:''});renderCards();}
+
+function renderCheckin(){
+ var d=dt.value,ci=checkins[d]||{};
+ fillSel(document.getElementById('ci-feel'),FEEL,ci.feeling);
+ fillSel(document.getElementById('ci-en'),EN,ci.energy);
+ fillSel(document.getElementById('ci-bl'),BL,ci.bleed||'—');
+ renderCyc();
+}
+function renderCyc(){
+ var c=computeCycle(dt.value);
+ document.getElementById('cyc').textContent=c?('Cycle: day ~'+c.day+' · '+c.phase):'Cycle: log a bleeding day to estimate your phase';
+}
+function renderCards(){
+ var d=dt.value;
+ document.getElementById('cards').innerHTML=PROGRAM.filter(function(e){return e.day===curDay;}).map(function(e){
+   var last=lastFor(e.k,d);var ts=topSet(last);
+   var lastTxt=ts?((ts.wt!=null?ts.wt+' kg':'BW')+(ts.rp!=null?' × '+ts.rp:'')+' · '+fmtDate(last.dt)):'no log yet';
+   var tg=draftT[e.k];
+   var rows=draft[e.k].map(function(s,i){
+     return '<div class="setrow"><div class="sn">S'+(i+1)+'</div>'
+       +'<input type="number" inputmode="decimal" step="0.5" placeholder="kg" value="'+s.wt+'" oninput="upd(\''+e.k+'\','+i+',\'wt\',this.value)">'
+       +'<input type="number" inputmode="numeric" placeholder="reps" value="'+s.rp+'" oninput="upd(\''+e.k+'\','+i+',\'rp\',this.value)">'
+       +'<button class="rmx" aria-label="remove set" onclick="rmSet(\''+e.k+'\','+i+')">×</button></div>';
+   }).join('');
+   return '<div class="xc'+(e.flag?' flagged':'')+'">'
+     +'<div class="xc-h"><div class="xc-fig">'+figure({fill:fillFor(e.k),w:'54',labels:false})+'</div>'
+     +'<div class="xc-mid"><div class="xc-n">'+e.n+(e.flag?'<span class="flagb">'+e.flag+'</span>':'')+'</div><div class="xc-m">'+e.mus+'</div></div>'
+     +'<div class="xc-ref"><span class="pop">'+e.sets+'</span><br>rest '+e.rest+'</div></div>'
+     +'<div class="xc-last"><span>Last top set: '+lastTxt+'</span>'+(tg?'<span class="tgt">↑ target '+tg+' kg</span>':'')+'</div>'
+     +rows
+     +'<button class="addset" onclick="addSet(\''+e.k+'\')">+ add set</button>'
+     +'<div class="nextrow"><label>Plan next ↑</label><input type="number" inputmode="decimal" step="0.5" placeholder="target kg" value="'+tg+'" oninput="updT(\''+e.k+'\',this.value)"></div>'
+     +'</div>';
+ }).join('');
+}
+
+document.getElementById('save').onclick=async function(){
+ var d=dt.value;
+ checkins[d]=checkins[d]||{};
+ checkins[d].feeling=document.getElementById('ci-feel').value;
+ checkins[d].energy=document.getElementById('ci-en').value;
+ var blv=document.getElementById('ci-bl').value;checkins[d].bleed=blv==='—'?'':blv;
+ PROGRAM.filter(function(e){return e.day===curDay;}).forEach(function(e){
+   var tg=parseFloat(draftT[e.k]);if(!isNaN(tg))targets[e.k]=tg;else delete targets[e.k];
+   var sets=draft[e.k].map(function(s){var w=parseFloat(s.wt),r=parseInt(s.rp);return {wt:isNaN(w)?null:w,rp:isNaN(r)?null:r};}).filter(function(s){return s.wt!=null||s.rp!=null;});
+   entries=entries.filter(function(x){return !(x.dt===d&&x.ex===e.k);});
+   if(sets.length)entries.push({id:Date.now()+Math.floor(Math.random()*1000),dt:d,day:curDay,ex:e.k,sets:sets});
+ });
+ await setJSON(K_E,entries);await setJSON(K_C,checkins);await setJSON(K_T,targets);
+ initDraft();renderCards();renderCyc();renderProg();
+ var b=this;b.textContent='Saved ✓';setTimeout(function(){b.textContent='Save session';},1400);
+};
+
+function spark(series){
+ if(series.length<2)return '<div style="font-family:IBM Plex Mono,monospace;font-size:.72rem;color:var(--stone)">log 2+ sessions to see a trend</div>';
+ var w=440,h=66,pad=8,vals=series.map(function(p){return p;}),mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),rng=(mx-mn)||1;
+ var pts=series.map(function(v,i){return [pad+i*(w-2*pad)/(series.length-1),h-pad-((v-mn)/rng)*(h-2*pad)];});
+ var line=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+ var dots=pts.map(function(p){return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="#4a6b8a"/>';}).join('');
+ return '<svg width="100%" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="margin-top:8px"><path d="'+line+'" fill="none" stroke="#6b8cae" stroke-width="2.5"/>'+dots+'</svg>';
+}
+function renderProg(){
+ var byEx={};entries.forEach(function(e){(byEx[e.ex]=byEx[e.ex]||[]).push(e);});
+ var totalSets=entries.reduce(function(a,e){return a+(e.sets?e.sets.length:0);},0);
+ document.getElementById('s-sess').textContent=totalSets;
+ document.getElementById('s-ex').textContent=Object.keys(byEx).length;
+ document.getElementById('s-days').textContent=new Set(entries.map(function(e){return e.dt;})).size;
+ var order=PROGRAM.map(function(p){return p.k;}).filter(function(k){return byEx[k];});
+ var wrap=document.getElementById('prog');
+ if(!order.length){wrap.innerHTML='<div class="empty">Log a few sessions and your strength trends show up here.</div>';return;}
+ wrap.innerHTML=order.map(function(k){
+   var arr=byEx[k].slice().sort(function(a,b){return a.dt<b.dt?-1:a.dt>b.dt?1:a.id-b.id;});
+   var hasWt=arr.some(function(e){var t=topSet(e);return t&&t.wt!=null;});
+   var series=[],lastTop=null;
+   arr.forEach(function(e){var t=topSet(e);if(!t)return;lastTop=t;if(hasWt){series.push(Math.round((t.e!=null?t.e:t.wt)*10)/10);}else{series.push(t.rp||0);}});
+   if(!series.length)return '';
+   var unit=hasWt?'est. kg':'reps';
+   var first=series[0],lastv=series[series.length-1],diff=Math.round((lastv-first)*10)/10,sign=diff>0?'+':'';
+   var nowTxt=lastTop?((lastTop.wt!=null?lastTop.wt+' kg':'BW')+(lastTop.rp!=null?' × '+lastTop.rp:'')):'';
+   var dtxt=series.length>1?(sign+diff+' '+unit+' since start'):'first entry logged';
+   return '<div class="pcard"><div class="top"><div class="nm">'+NAME[k]+'</div><div class="now">'+nowTxt+'</div></div><div class="delta '+(diff>0?'up':'flat')+'">'+dtxt+'</div>'+spark(series)+'</div>';
+ }).join('');
+}
+
+PROGRAM.forEach(function(e){var b=document.createElement('button');b.className='mb';b.textContent=e.n;b.id='mb-'+e.k;b.onclick=function(){setMuscle(e.k);};document.getElementById(e.day===1?'mg1':'mg2').appendChild(b);});
+document.getElementById('bigfig').innerHTML=figure({interactive:true,labels:true});
+function setMuscle(k){
+ document.querySelectorAll('.muscle').forEach(function(m){m.classList.remove('pri','sec');});
+ document.querySelectorAll('.mb').forEach(function(x){x.classList.remove('on');});
+ document.getElementById('mb-'+k).classList.add('on');
+ var e=MMAP[k];
+ e.s.forEach(function(m){document.querySelectorAll('.k-'+m).forEach(function(n){n.classList.add('sec');});});
+ e.p.forEach(function(m){document.querySelectorAll('.k-'+m).forEach(function(n){n.classList.add('pri');});});
+ var pf=e.p.map(function(m){return LBL[m];}).join(', '),sf=e.s.map(function(m){return LBL[m];}).join(', ');
+ document.getElementById('read').innerHTML='<span class="t">'+NAME[k]+'</span> — focus on '+pf+(sf?'<br><span style="color:var(--stone)">supporting: '+sf+'</span>':'');
+}
+
+document.querySelectorAll('.tab').forEach(function(t){t.onclick=function(){document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on');});document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('on');});t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on');if(t.dataset.t==='prog')renderProg();};});
+
+function snapshot(){return JSON.stringify({app:'strengthlog',v:3,exportedAt:new Date().toISOString(),entries:entries,checkins:checkins,targets:targets});}
+function exportData(){var t=snapshot();var box=document.getElementById('expbox');box.style.display='block';box.value=t;box.focus();box.select();var ok=false;try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}if(!ok){try{ok=document.execCommand('copy');}catch(e){}}var b=document.getElementById('exp');b.textContent=ok?'Copied ✓ — paste it to Claude':'Select all & copy';setTimeout(function(){b.textContent='Copy my data';},2200);}
+async function importData(){var raw=document.getElementById('impbox').value.trim();var msg=document.getElementById('impmsg');if(!raw){msg.textContent='Paste your exported data first.';return;}var d;try{d=JSON.parse(raw);}catch(e){msg.textContent="That doesn't look like valid export data.";return;}if(!confirm('Replace the data currently in this app with the imported data?'))return;entries=Array.isArray(d.entries)?d.entries:[];checkins=(d.checkins&&typeof d.checkins==='object')?d.checkins:{};targets=(d.targets&&typeof d.targets==='object')?d.targets:{};await setJSON(K_E,entries);await setJSON(K_C,checkins);await setJSON(K_T,targets);initDraft();renderCheckin();renderCards();renderProg();document.getElementById('impbox').value='';msg.textContent='Imported ✓ — your data is loaded.';}
+
+async function boot(){entries=await getJSON(K_E,[]);checkins=await getJSON(K_C,{});targets=await getJSON(K_T,{});initDraft();renderCheckin();renderCards();renderProg();setMuscle('incline');}
+boot();
+</script>
+</body>
+</html>
