@@ -82,6 +82,8 @@
   .leg{display:flex;gap:16px;margin-top:6px;font-size:.76rem;color:var(--ink-soft);}
   .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
   .hint{font-size:.78rem;color:var(--stone);margin-top:14px;line-height:1.55;}
+  .banner{border-radius:10px;padding:10px 12px;margin-bottom:13px;font-size:.84rem;line-height:1.5;background:var(--peach-soft);color:#9a4f28;}
+  .stallbadge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.66rem;background:var(--peach-soft);color:#9a4f28;padding:3px 8px;border-radius:5px;margin-top:7px;}
 </style>
 </head>
 <body>
@@ -95,6 +97,7 @@
   </div>
   <main>
     <section class="panel on" id="p-log">
+      <div id="review" class="banner" style="display:none"></div>
       <label>Session date</label><input id="dt" type="date">
       <div class="daytog"><button id="d1" class="on">Day 1</button><button id="d2">Day 2</button><button id="d3">Other</button></div>
       <div class="checkin">
@@ -113,6 +116,7 @@
     </section>
 
     <section class="panel" id="p-prog">
+      <div id="stallsum" class="banner" style="display:none"></div>
       <div class="stats">
         <div class="stat"><div class="v" id="s-sess">0</div><div class="k">sets logged</div></div>
         <div class="stat"><div class="v" id="s-ex">0</div><div class="k">lifts tracked</div></div>
@@ -188,8 +192,8 @@ function figure(opts){
 }
 function fillFor(k){var m=MMAP[k],o={};m.s.forEach(function(x){o[x]='sec';});m.p.forEach(function(x){o[x]='pri';});return o;}
 
-const K_E='sl:entries',K_C='sl:checkins',K_T='sl:targets',K_A='sl:activities',K_W='sl:weight';
-let entries=[],checkins={},targets={},activities={},curDay=1,draft={},draftT={},draftA=[],bodyW=61;
+const K_E='sl:entries',K_C='sl:checkins',K_T='sl:targets',K_A='sl:activities',K_W='sl:weight',K_R='sl:lastreview';
+let entries=[],checkins={},targets={},activities={},curDay=1,draft={},draftT={},draftA=[],bodyW=61,lastReview=null;
 const ACTS=[['—',0],['Badminton',5.0],['Zone2 walk (incline)',5.5],['Pump class',5.0],['Plyometrics',6.0],['Reformer pilates',3.5],['Cardio class',6.0],['Walking',3.5],['Cycling',6.0],['Swimming',6.0],['Other',4.0]];
 function metOf(t){for(var i=0;i<ACTS.length;i++){if(ACTS[i][0]===t)return ACTS[i][1];}return 0;}
 function metKcal(met,min){return Math.round(met*3.5*bodyW/200*min);}
@@ -270,6 +274,14 @@ function renderCyc(){
  var c=computeCycle(dt.value);
  document.getElementById('cyc').textContent=c?('Cycle: day ~'+c.day+' · '+c.phase):'Cycle: log a bleeding day to estimate your phase';
 }
+function firstEntryDate(){var ds=entries.map(function(e){return e.dt;});if(!ds.length)return null;return ds.sort()[0];}
+function reviewDue(){var f=firstEntryDate();if(!f)return false;var base=lastReview||f;return diffDays(todayISO(),base)>=42;}
+function renderReview(){
+ var el=document.getElementById('review');if(!el)return;
+ if(reviewDue()){var wks=Math.floor(diffDays(todayISO(),firstEntryDate())/7);el.style.display='block';el.innerHTML="You've been logging about "+wks+" weeks — a good moment to review your trends with Claude and book your InBody. <button onclick=\"markReviewed()\" style=\"margin-top:7px;background:#9a4f28;color:#fff;border:none;border-radius:6px;padding:6px 11px;font-size:.78rem;cursor:pointer;\">Mark reviewed</button>";}
+ else{el.style.display='none';}
+}
+function markReviewed(){lastReview=todayISO();setJSON(K_R,lastReview);renderReview();}
 function renderCards(){
  var d=dt.value;var box=document.getElementById('cards');
  if(curDay==='other'){
@@ -327,7 +339,7 @@ document.getElementById('save').onclick=async function(){
    });
  }
  await setJSON(K_E,entries);await setJSON(K_C,checkins);await setJSON(K_T,targets);await setJSON(K_A,activities);
- initDraft();renderCards();renderCyc();renderProg();
+ initDraft();renderCards();renderCyc();renderProg();renderReview();
  var b=this;b.textContent='Saved ✓';setTimeout(function(){b.textContent='Save session';},1400);
 };
 
@@ -347,7 +359,9 @@ function renderProg(){
  document.getElementById('s-days').textContent=new Set(entries.map(function(e){return e.dt;})).size;
  var order=PROGRAM.map(function(p){return p.k;}).filter(function(k){return byEx[k];});
  var wrap=document.getElementById('prog');
- if(!order.length){wrap.innerHTML='<div class="empty">Log a few sessions and your strength trends show up here.</div>';return;}
+ var sumEl=document.getElementById('stallsum');
+ if(!order.length){wrap.innerHTML='<div class="empty">Log a few sessions and your strength trends show up here.</div>';if(sumEl)sumEl.style.display='none';return;}
+ var stalls=0;
  wrap.innerHTML=order.map(function(k){
    var arr=byEx[k].slice().sort(function(a,b){return a.dt<b.dt?-1:a.dt>b.dt?1:a.id-b.id;});
    var hasWt=arr.some(function(e){var t=topSet(e);return t&&t.wt!=null;});
@@ -355,11 +369,15 @@ function renderProg(){
    arr.forEach(function(e){var t=topSet(e);if(!t)return;lastTop=t;if(hasWt){series.push(Math.round((t.e!=null?t.e:t.wt)*10)/10);}else{series.push(t.rp||0);}});
    if(!series.length)return '';
    var unit=hasWt?'est. kg':'reps';
-   var first=series[0],lastv=series[series.length-1],diff=Math.round((lastv-first)*10)/10,sign=diff>0?'+':'';
+   var L=series.length;
+   var first=series[0],lastv=series[L-1],diff=Math.round((lastv-first)*10)/10,sign=diff>0?'+':'';
    var nowTxt=lastTop?((lastTop.wt!=null?lastTop.wt+' kg':'BW')+(lastTop.rp!=null?' × '+lastTop.rp:'')):'';
-   var dtxt=series.length>1?(sign+diff+' '+unit+' since start'):'first entry logged';
-   return '<div class="pcard"><div class="top"><div class="nm">'+NAME[k]+'</div><div class="now">'+nowTxt+'</div></div><div class="delta '+(diff>0?'up':'flat')+'">'+dtxt+'</div>'+spark(series)+'</div>';
+   var dtxt=L>1?(sign+diff+' '+unit+' since start'):'first entry logged';
+   var stall=L>=3&&series[L-1]<=series[L-3];
+   if(stall)stalls++;
+   return '<div class="pcard"><div class="top"><div class="nm">'+NAME[k]+'</div><div class="now">'+nowTxt+'</div></div><div class="delta '+(diff>0?'up':'flat')+'">'+dtxt+'</div>'+(stall?'<div class="stallbadge">possible stall — worth a review</div>':'')+spark(series)+'</div>';
  }).join('');
+ if(sumEl){if(stalls>0){sumEl.style.display='block';sumEl.textContent=stalls+(stalls===1?' lift hasn\'t moved in 3 sessions — worth a look (recovery, fuel, or a small change).':' lifts haven\'t moved in 3 sessions — worth a look (recovery, fuel, or a small change).');}else{sumEl.style.display='none';}}
 }
 
 PROGRAM.forEach(function(e){var b=document.createElement('button');b.className='mb';b.textContent=e.n;b.id='mb-'+e.k;b.onclick=function(){setMuscle(e.k);};document.getElementById(e.day===1?'mg1':'mg2').appendChild(b);});
@@ -381,7 +399,7 @@ function snapshot(){return JSON.stringify({app:'strengthlog',v:4,exportedAt:new 
 function exportData(){var t=snapshot();var box=document.getElementById('expbox');box.style.display='block';box.value=t;box.focus();box.select();var ok=false;try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}if(!ok){try{ok=document.execCommand('copy');}catch(e){}}var b=document.getElementById('exp');b.textContent=ok?'Copied ✓ — paste it to Claude':'Select all & copy';setTimeout(function(){b.textContent='Copy my data';},2200);}
 async function importData(){var raw=document.getElementById('impbox').value.trim();var msg=document.getElementById('impmsg');if(!raw){msg.textContent='Paste your exported data first.';return;}var d;try{d=JSON.parse(raw);}catch(e){msg.textContent="That doesn't look like valid export data.";return;}if(!confirm('Replace the data currently in this app with the imported data?'))return;entries=Array.isArray(d.entries)?d.entries:[];checkins=(d.checkins&&typeof d.checkins==='object')?d.checkins:{};targets=(d.targets&&typeof d.targets==='object')?d.targets:{};activities=(d.activities&&typeof d.activities==='object')?d.activities:{};if(typeof d.weight==='number'){bodyW=d.weight;var wi=document.getElementById('bw');if(wi)wi.value=bodyW;}await setJSON(K_E,entries);await setJSON(K_C,checkins);await setJSON(K_T,targets);await setJSON(K_A,activities);await setJSON(K_W,bodyW);initDraft();renderCheckin();renderCards();renderProg();document.getElementById('impbox').value='';msg.textContent='Imported ✓ — your data is loaded.';}
 
-async function boot(){entries=await getJSON(K_E,[]);checkins=await getJSON(K_C,{});targets=await getJSON(K_T,{});activities=await getJSON(K_A,{});bodyW=await getJSON(K_W,61);var wi=document.getElementById('bw');if(wi)wi.value=bodyW;initDraft();renderCheckin();renderCards();renderProg();setMuscle('incline');}
+async function boot(){entries=await getJSON(K_E,[]);checkins=await getJSON(K_C,{});targets=await getJSON(K_T,{});activities=await getJSON(K_A,{});bodyW=await getJSON(K_W,61);lastReview=await getJSON(K_R,null);var wi=document.getElementById('bw');if(wi)wi.value=bodyW;initDraft();renderCheckin();renderCards();renderProg();renderReview();setMuscle('incline');}
 boot();
 </script>
 </body>
